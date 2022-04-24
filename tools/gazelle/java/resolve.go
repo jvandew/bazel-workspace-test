@@ -120,7 +120,9 @@ func (*Resolver) Resolve(
 		}
 	}
 
-	r.SetAttr("deps", convertDependencySetToExpr(deps))
+	if deps.Size() > 0 {
+		r.SetAttr("deps", convertDependencySetToExpr(deps))
+	}
 }
 
 // convertDependencySetToExpr converts the given set of dependencies to an

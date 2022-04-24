@@ -4,5 +4,4 @@ java_library(
     name = "print",
     srcs = ["Printer.java"],
     visibility = ["//visibility:public"],
-    deps = [],
 )
