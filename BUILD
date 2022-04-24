@@ -3,7 +3,7 @@ load("@bazel_gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary
 gazelle_binary(
     name = "gazelle_runner",
     languages = [
-        "@bazel_gazelle//language/go",
+        # "@bazel_gazelle//language/go", TODO(jacob): this is mucking up a bazel def for some reason
         "//tools/gazelle/java",
     ],
     visibility = ["//visibility:public"],
@@ -11,7 +11,7 @@ gazelle_binary(
 
 # Gazelle configuration options.
 # See https://github.com/bazelbuild/bazel-gazelle#running-gazelle-with-bazel
-# gazelle:prefix github.com/foursquare/bazel-workspace-test
+# # gazelle:prefix github.com/foursquare/bazel-workspace-test
 # gazelle:exclude bazel-out
 gazelle(
     name = "gazelle",
