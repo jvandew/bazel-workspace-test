@@ -9,6 +9,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/repo"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/emirpasic/gods/sets/treeset"
 )
 
 // Resolver satisfies the resolve.Resolver interface. It resolves dependencies
@@ -28,7 +29,8 @@ func (*Resolver) Name() string {
 // If nil is returned, the rule will not be indexed. If any non-nil slice is
 // returned, including an empty slice, the rule will be indexed.
 //
-// NOTE(jacob): This is a dead simple implementation currently. Assumptions made:
+// NOTE(jacob): Doc translation: "Return the packages defined by this BUILD target." This
+//		is a dead simple implementation currently. Assumptions made:
 //		- we have no packages split across build targets
 //		- package structure matches directory structure, ignoring the top-level module name
 //			and source tree prefix
@@ -42,7 +44,6 @@ func (*Resolver) Imports(
 	sourceTreePrefix := cfg.SourceTreePrefix
 	packageStartIndex := strings.Index(f.Pkg, sourceTreePrefix) + len(sourceTreePrefix)
 	javaPackage := strings.ReplaceAll(f.Pkg[packageStartIndex:], "/", ".")
-	log.Printf(javaPackage)
 
 	return []resolve.ImportSpec{
 		resolve.ImportSpec{
@@ -57,6 +58,7 @@ func (*Resolver) Imports(
 // the embedding rule will be indexed. The embedding rule will inherit
 // the imports of the embedded rule.
 func (*Resolver) Embeds(r *rule.Rule, from label.Label) []label.Label {
+	// TODO(jacob): nothing to do here for java?
 	return make([]label.Label, 0)
 }
 
@@ -74,5 +76,5 @@ func (*Resolver) Resolve(
 	imports interface{},
 	from label.Label,
 ) {
-
+	log.Printf("Resolve imports: %s", imports.(*treeset.Set).String())
 }

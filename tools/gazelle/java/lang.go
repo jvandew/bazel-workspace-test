@@ -1,8 +1,11 @@
 package java
 
 import (
+	"bufio"
 	"log"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/language"
@@ -15,6 +18,9 @@ import (
 const (
 	JavaName = "java"
 	javaLibraryKind = "java_library"
+
+	importPrefix = "import "
+	staticPrefix = "static "
 )
 
 type javaLang struct {
@@ -93,24 +99,94 @@ func (*javaLang) Loads() []rule.LoadInfo {
 //
 // https://github.com/bazelbuild/bazel-gazelle/blob/master/language/go/generate.go
 // https://github.com/bazelbuild/rules_python/blob/main/gazelle/generate.go
+//
+// NOTE(jacob): We take a pretty basic approach here: look for java source files and do
+//		some brute force string parsing to search them for imports. These then get set as a
+//		private attribute on the new rule we create, which is how they're passed to the
+//		Resolver's Resolve function.
 func (*javaLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
-	// cfgs := args.Config.Exts[languageName].(pythonconfig.Configs)
-	// cfg := cfgs[args.Rel]
+	cfg := args.Config.Exts[JavaName].(JavaConfig)
 
-	// if !cfg.ExtensionEnabled() {
-	//	 return language.GenerateResult{}
-	// }
+	targetName := filepath.Base(args.Rel)
 
-	javaLibraryFilenames := treeset.NewWith(godsutils.StringComparator)
+	javaSources := treeset.NewWith(godsutils.StringComparator)
+	javaPackageDeps := treeset.NewWith(godsutils.StringComparator)
+	for _, filename := range args.RegularFiles {
+		if filepath.Ext(filename) == ".java" {
+			log.Printf("found file: %s", filename)
+			javaSources.Add(filename)
 
-	for _, f := range args.RegularFiles {
-		if filepath.Ext(f) == ".java" {
-			log.Printf("found file: %s", f)
-			javaLibraryFilenames.Add(f)
+			absolutePath := filepath.Join(args.Dir, filename)
+			importedPackages, err := parseImportedPackages(absolutePath)
+
+			if err != nil {
+				log.Printf("ERROR: failed to parse imports from %s: %w", absolutePath, err)
+			} else {
+				javaPackageDeps = javaPackageDeps.Union(importedPackages)
+			}
 		}
 	}
 
-	return language.GenerateResult{}
+	if javaSources.Empty() {
+		return language.GenerateResult{}
+	} else {
+		javaLibrary := rule.NewRule(javaLibraryKind, targetName)
+		javaLibrary.SetAttr("srcs", javaSources.Values())
+		javaLibrary.SetAttr("visibility", []string{cfg.DefaultLibraryVisibility})
+		javaLibrary.SetPrivateAttr(config.GazelleImportsKey, javaPackageDeps)
+
+		return language.GenerateResult{
+			Gen: []*rule.Rule{javaLibrary},
+			Imports: []interface{}{javaLibrary.PrivateAttr(config.GazelleImportsKey)},
+		}
+	}
+}
+
+func parseImportedPackages(javaFilename string) (*treeset.Set, error) {
+	importedPackages := treeset.NewWith(godsutils.StringComparator)
+
+	file, err := os.Open(javaFilename)
+	if err != nil {
+		return importedPackages, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	foundImports := false
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, importPrefix) {
+			foundImports = true
+
+			packageEndIndex := strings.LastIndex(line, ".")
+			if packageEndIndex == -1 {
+				log.Printf("WARN: possibly malformed import: '%s'", line)
+				continue
+			}
+
+			importedPackage := line[len(importPrefix):packageEndIndex]
+			if strings.HasPrefix(importedPackage, staticPrefix) {
+				log.Printf("WARN: static imports not currently supported, skipping: '%s'", line)
+				continue
+			}
+
+			log.Printf("found imported package: '%s'", importedPackage)
+			importedPackages.Add(importedPackage)
+
+		} else if foundImports {
+			// We've previously encountered imports and this line doesn't seem to be one,
+			// assume we're done.
+			break
+
+		} else {
+			// still looking...
+			continue
+		}
+	}
+
+	err = scanner.Err()
+	return importedPackages, err
 }
 
 // Fix repairs deprecated usage of language-specific rules in f. This is

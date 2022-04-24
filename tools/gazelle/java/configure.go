@@ -9,6 +9,7 @@ import (
 
 type JavaConfig struct{
 	SourceTreePrefix string
+	DefaultLibraryVisibility string
 }
 
 // Configurer satisfies the config.Configurer interface. It's the
@@ -27,6 +28,13 @@ func (*Configurer) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config)
 		"java_source_tree_prefix",
 		"src/jvm/",
 		"filesystem prefix for java source files",
+	)
+
+	fs.StringVar(
+		&javaConfig.DefaultLibraryVisibility,
+		"java_default_visibility",
+		"//visibility:public",
+		"default visibility for generated java_library targets",
 	)
 
 	c.Exts[JavaName] = javaConfig
