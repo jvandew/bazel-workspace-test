@@ -1,7 +1,9 @@
 package java
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
@@ -9,7 +11,9 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/repo"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/sets/treeset"
+	godsutils "github.com/emirpasic/gods/utils"
 )
 
 // Resolver satisfies the resolve.Resolver interface. It resolves dependencies
@@ -70,11 +74,65 @@ func (*Resolver) Embeds(r *rule.Rule, from label.Label) []label.Label {
 // language-specific rules and heuristics.
 func (*Resolver) Resolve(
 	c *config.Config,
-	ix *resolve.RuleIndex,
+	ruleIndex *resolve.RuleIndex,
 	rc *repo.RemoteCache,
 	r *rule.Rule,
 	imports interface{},
 	from label.Label,
 ) {
-	log.Printf("Resolve imports: %s", imports.(*treeset.Set).String())
+	deps := treeset.NewWith(godsutils.StringComparator)
+
+	it := imports.(*treeset.Set).Iterator()
+	for it.Next() {
+		javaPackage := it.Value().(string)
+		javaImportSpec := resolve.ImportSpec{
+			Lang: JavaName,
+			Imp: javaPackage,
+		}
+		foundRules := ruleIndex.FindRulesByImportWithConfig(c, javaImportSpec, JavaName)
+
+		if len(foundRules) != 1 {
+			if len(foundRules) == 0 {
+				log.Printf(
+					"ERROR: failed to find a BUILD target containing the \"%s\" package",
+					javaPackage,
+				)
+
+			} else {
+				targets := make([]string, len(foundRules))
+				for i, foundRule := range foundRules {
+					targets[i] = fmt.Sprintf("%s:%s", foundRule.Label.Pkg, foundRule.Label.Name)
+				}
+				log.Printf(
+					"ERROR: multiple BUILD targets containing the \"%s\" package: %+q",
+					javaPackage,
+					targets,
+				)
+			}
+
+			os.Exit(1)
+
+		} else {
+			// TODO(jacob): This assumes the target name matches the package/directory name,
+			//		which is at least mostly true but possibly not always true? It does look
+			//		cleaner though.
+			deps.Add(foundRules[0].Label.Pkg)
+		}
+	}
+
+	r.SetAttr("deps", convertDependencySetToExpr(deps))
+}
+
+// convertDependencySetToExpr converts the given set of dependencies to an
+// expression to be used in the deps attribute.
+//
+// from https://github.com/bazelbuild/rules_python/blob/27d0c7bb8e663dd2e2e9b295ecbfed680e641dfd/gazelle/resolve.go#L264-L274
+func convertDependencySetToExpr(set *treeset.Set) bzl.Expr {
+	deps := make([]bzl.Expr, set.Size())
+	it := set.Iterator()
+	for it.Next() {
+		dep := it.Value().(string)
+		deps[it.Index()] = &bzl.StringExpr{Value: dep}
+	}
+	return &bzl.ListExpr{List: deps}
 }
