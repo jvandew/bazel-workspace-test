@@ -18,8 +18,8 @@ def internal_gazelle_deps():
     go_repository(
         name = "com_github_emirpasic_gods",
         importpath = "github.com/emirpasic/gods",
-        sum = "h1:QAUIPSaCu4G+POclxeqb3F+WPpdKqFGlw36+yOzGlrg=",
-        version = "v1.12.0",
+        sum = "h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=",
+        version = "v1.18.1",
     )
 
     go_repository(
