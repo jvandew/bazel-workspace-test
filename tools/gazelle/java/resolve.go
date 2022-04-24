@@ -44,12 +44,12 @@ func (*Resolver) Imports(
 	javaPackage := strings.ReplaceAll(f.Pkg[packageStartIndex:], "/", ".")
 	log.Printf(javaPackage)
 
-  return []resolve.ImportSpec{
-  	resolve.ImportSpec{
-  		Lang: JavaName,
+	return []resolve.ImportSpec{
+		resolve.ImportSpec{
+			Lang: JavaName,
 			Imp: javaPackage,
 		},
-  }
+	}
 }
 
 // Embeds returns a list of labels of rules that the given rule embeds. If
