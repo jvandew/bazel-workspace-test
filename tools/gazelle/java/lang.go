@@ -13,7 +13,7 @@ import (
 
 
 const (
-	javaName = "java"
+	JavaName = "java"
 	javaLibraryKind = "java_library"
 )
 
@@ -23,7 +23,7 @@ type javaLang struct {
 }
 
 func (*javaLang) Name() string {
-  return javaName
+  return JavaName
 }
 
 func NewLanguage() language.Language {

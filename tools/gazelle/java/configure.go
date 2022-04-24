@@ -7,6 +7,10 @@ import (
   "github.com/bazelbuild/bazel-gazelle/rule"
 )
 
+type JavaConfig struct{
+  SourceTreePrefix string
+}
+
 // Configurer satisfies the config.Configurer interface. It's the
 // language-specific configuration extension.
 type Configurer struct{}
@@ -15,7 +19,18 @@ type Configurer struct{}
 // method is called once with the root configuration when Gazelle
 // starts. RegisterFlags may set an initial values in Config.Exts. When flags
 // are set, they should modify these values.
-func (*Configurer) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config) {}
+func (*Configurer) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config) {
+  javaConfig := JavaConfig{}
+
+  fs.StringVar(
+    &javaConfig.SourceTreePrefix,
+    "java_source_tree_prefix",
+    "src/jvm/",
+    "filesystem prefix for java source files",
+  )
+
+  c.Exts[JavaName] = javaConfig
+}
 
 // CheckFlags validates the configuration after command line flags are parsed.
 // This is called once with the root configuration when Gazelle starts.
