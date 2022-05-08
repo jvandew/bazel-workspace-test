@@ -14,6 +14,39 @@ http_archive(
     ],
 )
 
+RULES_JVM_EXTERNAL_VERSION = "4.2"
+
+http_archive(
+    name = "rules_jvm_external",
+    sha256 = "cd1a77b7b02e8e008439ca76fd34f5b07aecb8c752961f9640dea15e9e5ba1ca",
+    strip_prefix = "rules_jvm_external-{version}".format(version = RULES_JVM_EXTERNAL_VERSION),
+    url = "https://github.com/bazelbuild/rules_jvm_external/archive/{version}.zip".format(
+        version = RULES_JVM_EXTERNAL_VERSION,
+    ),
+)
+
+load("@rules_jvm_external//:defs.bzl", "maven_install")
+
+JACKSON_REV = "2.13.2"
+
+maven_install(
+    artifacts = [
+        "com.fasterxml.jackson.core:jackson-core:{}".format(JACKSON_REV),
+        "com.fasterxml.jackson.core:jackson-databind:{}".format(JACKSON_REV),
+    ],
+    fail_if_repin_required = True,
+    maven_install_json = "//3rdparty/jvm:maven_install.json",
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+    strict_visibility = True,
+    version_conflict_policy = "pinned",
+)
+
+load("@maven//:defs.bzl", "pinned_maven_install")
+
+pinned_maven_install()
+
 http_archive(
     name = "io_bazel_rules_go",
     sha256 = "f2dcd210c7095febe54b804bb1cd3a58fe8435a909db2ec04e31542631cf715c",
