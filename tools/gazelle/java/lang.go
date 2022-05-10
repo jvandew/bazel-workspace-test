@@ -21,6 +21,8 @@ const (
 
 	importPrefix = "import "
 	staticPrefix = "static "
+
+	thirdpartyMapOverrideFile = "3rdparty/jvm/thirdparty_map_overrides.json"
 )
 
 type javaLang struct {
@@ -33,7 +35,12 @@ func (*javaLang) Name() string {
 }
 
 func NewLanguage() language.Language {
-	return &javaLang{}
+	return &javaLang{
+		Configurer{},
+		Resolver{
+			thirdpartyMap: parseThirdpartyMap(),
+		},
+	}
 }
 
 var javaKinds = map[string]rule.KindInfo{

@@ -13,9 +13,9 @@ java_library(
     srcs = ["Hello.java"],
     visibility = ["//visibility:public"],
     deps = [
-        "@maven//:com_fasterxml_jackson_core_jackson_core",
-        "@maven//:com_fasterxml_jackson_core_jackson_databind",
         "//hello/src/jvm/hello/util",
         "//shared/src/jvm/common/print",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
     ],
 )
